@@ -10,7 +10,7 @@ export class HomePage {
         this.page = page;
         this.loginBtn = page.getByRole('link', { name: 'Login' });
         this.registerBtn = page.getByRole('link', { name: 'Register' })
-        this.eventsBtn = page.getByRole('link', { name: 'Events' })
+        this.eventsBtn = page.getByRole('link', { name: 'Events', exact: true })
     }
 
     async expectHomePageNavBarIsVisible() {

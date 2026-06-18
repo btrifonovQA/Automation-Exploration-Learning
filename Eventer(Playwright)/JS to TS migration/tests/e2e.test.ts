@@ -1,23 +1,17 @@
 import { test, expect } from '@playwright/test';
-import type { Locator, Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import { MainPage } from './page-objects/MainPage';
 import { HomePage } from './page-objects/HomePage';
 import { LoginForm } from './page-objects/LoginForm';
 import { RegisterForm } from './page-objects/RegisterForm';
+import { AddEventPage } from './page-objects/AddEventPage';
+import { DashboardPage } from './page-objects/DashboardPage';
+import { EditEventPage } from './page-objects/EditEventPage';
+import { EditPreviewPage } from './page-objects/EditPreviewPage';
+import { generateRandomId, generateEventName } from './utils/dataGenerators';
+import { createUser } from './utils/testData';
 
 const host: string = 'http://localhost:3000'
-
-let user = {
-    email: "",
-    password: "123456",
-    confirmPass: "123456",
-};
-
-let randomNum: number = Math.floor(Math.random() * 1000000)
-user.email = `testaccount_id${randomNum}@domain.com`
-
-let eventName: string = "";
-let createdEventHREF: string = "";
 
 async function loginUser(page: Page, email: string, password: string) {
     const homePage: HomePage = new HomePage(page)
@@ -31,21 +25,20 @@ async function loginUser(page: Page, email: string, password: string) {
 
     //fill login fields
     await expect(page).toHaveURL(host + '/login')
-    loginForm.expectLoginFormIsVisible()
+    await loginForm.expectLoginFormIsVisible()
 
     await loginForm.emailField.fill(email)
     await loginForm.passwordField.fill(password)
     await loginForm.loginSubmitBtn.click()
 }
 
-async function registerUser(page: Page, email: string, password: string, confirmPass: string) {
+async function registerUser(page: Page, user: { email: string; password: string; confirmPass: string; }) {
     const homePage: HomePage = new HomePage(page)
     const registerForm: RegisterForm = new RegisterForm(page)
-    const mainPage: MainPage = new MainPage(page)
 
     await page.goto(host)
 
-    homePage.expectHomePageNavBarIsVisible();
+    await homePage.expectHomePageNavBarIsVisible();
     await homePage.registerBtn.click()
 
     await expect(page).toHaveURL(host + '/register')
@@ -56,26 +49,88 @@ async function registerUser(page: Page, email: string, password: string, confirm
     await registerForm.repeatPasswordField.fill(user.confirmPass)
 
     await registerForm.submitFormBtn.click()
+
+    return user
 }
 
-// createEvent()
-// editEvent()
-// openEvent()  
+async function logoutUser(page: Page) {
+    const mainPage: MainPage = new MainPage(page)
+
+    await mainPage.logoutBtn.click()
+}
+
+async function createEvent(page: Page, eventName: string, randomId: string) {
+    const mainPage: MainPage = new MainPage(page)
+    const addEventPage: AddEventPage = new AddEventPage(page)
+
+    await mainPage.addEventBtn.click()
+
+    await expect(page).toHaveURL(host + '/add-event')
+    await expect(addEventPage.addEventForm).toBeVisible()
+
+    await addEventPage.fillEventForm(eventName, randomId)
+    await addEventPage.submitForm()
+}
+
+async function editEvent(page: Page, eventName: string, randomId: string) {
+    const editEventPage: EditEventPage = new EditEventPage(page)
+    const editPreviewPage: EditPreviewPage = new EditPreviewPage(page)
+
+    const eventCard = page.locator(`xpath=//div[@class="event"]/p[@class="title"][text()="${eventName}"]/..`)
+    const eventCardDetailsBtn = eventCard.getByRole('link', { name: 'Details' })
+    const href = await eventCardDetailsBtn.getAttribute('href')
+    await eventCardDetailsBtn.click()
+
+    await expect(page).toHaveURL(host + href)
+    await expect(editPreviewPage.eventPreviewElement).toBeVisible()
+
+    await editPreviewPage.editPreviewButton.click()
+
+    await editEventPage.editEventFormFill(eventName, randomId)
+
+    await expect(page).toHaveURL(host + href)
+}
+async function deleteEvent(page: Page, eventName: string) {
+    const editPreviewPage: EditPreviewPage = new EditPreviewPage(page)
+    const dashboardPage: DashboardPage = new DashboardPage(page)
+
+    await page.goto(host + '/dashboard')
+
+    const eventCard = page.locator(`xpath=//div[@class="event"]/p[@class="title"][text()="${eventName}"]/..`)
+    const eventCardDetailsBtn = eventCard.getByRole('link', { name: 'Details' })
+    const href = await eventCardDetailsBtn.getAttribute('href')
+    await eventCardDetailsBtn.click()
+
+    await expect(page).toHaveURL(host + href)
+    await expect(editPreviewPage.eventPreviewElement).toBeVisible()
+
+    page.once('dialog', dialog => dialog.accept());
+    await editPreviewPage.deletePreviewButton.click()
+
+    await expect(page).toHaveURL(host + '/dashboard')
+    await expect(dashboardPage.dashboard).toBeVisible()
+
+    await expect(eventCard).toHaveCount(0)
+}
 
 test.describe("e2e tests", () => {
 
     test.describe("authentication", () => {
         test('Registration with Valid Data', async ({ page }) => {
-            const mainPage: MainPage = new MainPage(page)
+            const homePage: HomePage = new HomePage(page)
 
-            registerUser(page, user.email, user.password, user.confirmPass)
+            await registerUser(page, createUser())
+            await logoutUser(page)
 
             await expect(page).toHaveURL(host + '/')
-            await mainPage.expectMainPageNavBarIsVisible()
+            await homePage.expectHomePageNavBarIsVisible();
         })
 
         test('Login with Valid Data', async ({ page }) => {
             const mainPage: MainPage = new MainPage(page)
+
+            let user = await registerUser(page, createUser())
+            await logoutUser(page)
 
             await loginUser(page, user.email, user.password)
 
@@ -86,6 +141,9 @@ test.describe("e2e tests", () => {
         test('Logout from the Application', async ({ page }) => {
             const mainPage: MainPage = new MainPage(page)
             const homePage: HomePage = new HomePage(page)
+
+            let user = await registerUser(page, createUser())
+            await logoutUser(page)
 
             await loginUser(page, user.email, user.password)
 
@@ -99,6 +157,9 @@ test.describe("e2e tests", () => {
         test('Navigation for Logged-In User', async ({ page }) => {
             const mainPage: MainPage = new MainPage(page)
             const homePage: HomePage = new HomePage(page)
+
+            let user = await registerUser(page, createUser())
+            await logoutUser(page)
 
             await loginUser(page, user.email, user.password)
 
@@ -122,125 +183,58 @@ test.describe("e2e tests", () => {
     });
 
     test.describe("CRUD", () => {
-        test('Add an Event', async ({page}) => {
+        test('Add an Event', async ({ page }) => {
+            const dashboardPage: DashboardPage = new DashboardPage(page)
+
+            let eventName: string = generateEventName()
+            let randomId: string = generateRandomId()
+            let user = await registerUser(page, createUser())
+            await logoutUser(page)
+
             await loginUser(page, user.email, user.password)
+            await createEvent(page, eventName, randomId)
 
-            const addEventBtnLocator: Locator = await page.getByRole('link', { name: 'Add Event' })
-            await addEventBtnLocator.click()
+            await expect(page).toHaveURL(host + '/dashboard')
+            await expect(dashboardPage.dashboard).toBeVisible()
 
-            await page.waitForURL(host + '/add-event')
-            expect(page.url()).toBe(host + '/add-event')
-            await expect(page.locator('#create > div.form')).toBeVisible()
+            await dashboardPage.createdEventIsPresentOnDashboard(eventName)
 
-            let random = Math.floor(Math.random() * 1000000)
-            eventName = `testEvent_id${random}`
-
-            //event fields locate + fill
-            const eventNameInputFieldLocator: Locator = await page.getByRole('textbox', { name: 'Event', exact: true })
-            await eventNameInputFieldLocator.fill(eventName)
-
-            const eventImageUrlInputFieldLocator: Locator = await page.getByRole('textbox', { name: 'Event Image URL' })
-            await eventImageUrlInputFieldLocator.fill('https://www.boredpanda.com/blog/wp-content/uploads/2022/09/relatable-funny-memes-22-63284d45ebe28__700.jpg')
-
-            const eventCategoryInputFieldLocator: Locator = await page.getByRole('textbox', { name: 'Category' })
-            await eventCategoryInputFieldLocator.fill(`Category_id${random}`)
-
-            const eventDescriptionInputFieldLocator: Locator = await page.getByRole('textbox', { name: 'Description' })
-            await eventDescriptionInputFieldLocator.fill(`Description_id${random}`)
-
-            const eventWhenInputFieldLocator: Locator = await page.getByRole('textbox', { name: 'When?' })
-            await eventWhenInputFieldLocator.fill(`Date_id${random}`)
-
-            const addEventSubmitBtnLocator: Locator = await page.getByRole('button', { name: 'Add' })
-            await addEventSubmitBtnLocator.click()
-
-            await page.waitForURL(host + '/dashboard')
-            expect(page.url()).toBe(host + '/dashboard')
-            await expect(page.locator('#dashboard')).toBeVisible()
-
-            await expect(page.locator('#dashboard div.event > p.title', { hasText: eventName })).toBeVisible()
-            await expect(page.locator('#dashboard div.event > p.title', { hasText: eventName })).toHaveCount(1)
+            await deleteEvent(page, eventName)
         })
 
-        test('Edit an Event', async () => {
+        test('Edit an Event', async ({ page }) => {
+            const editPreviewPage: EditPreviewPage = new EditPreviewPage(page)
+
+            let eventName: string = generateEventName()
+            let randomId: string = generateRandomId()
+
+            let user = await registerUser(page, createUser())
+            await logoutUser(page)
+
             await loginUser(page, user.email, user.password)
 
-            const eventsBtnLocator: Locator = await page.getByRole('link', { name: 'Events', exact: true })
-            await eventsBtnLocator.click()
+            await createEvent(page, eventName, randomId)
 
-            await page.waitForURL(host + '/dashboard')
-            expect(page.url()).toBe(host + '/dashboard')
-            await expect(page.locator('#dashboard')).toBeVisible()
+            await editEvent(page, eventName, randomId)
 
-            //find href of edit button for created event
-            createdEventHREF = await page.evaluate(eventName => {
-                const allEvents = Array.from(document.querySelectorAll('div.event > p.title'))
-                const eventElement = allEvents.find(title => title.textContent.trim() === eventName)
-                const parentEventElement = eventElement.parentElement
-                const detailsBtn = parentEventElement.querySelector('a.details-btn')
+            await expect(editPreviewPage.eventPreviewElement).toBeVisible()
+            await expect(editPreviewPage.eventPreviewName).toContainText(eventName)
 
-                return detailsBtn.href
-            }, eventName);
-
-            //replace turns [href="http://localhost:3000/details/unique-ID"] into [href="/details/unique-ID"]
-            const createdEventBtnLocator: Locator = await page.locator(`div.event > a[href="${createdEventHREF.replace('http://localhost:3000', '')}"]`)
-            await createdEventBtnLocator.click()
-
-            await page.waitForURL(createdEventHREF)
-            expect(page.url()).toBe(createdEventHREF)
-            await expect(page.locator('#details-wrapper')).toBeVisible()
-
-            const editBtnLocator: Locator = await page.getByRole('link', { name: 'Edit' })
-            await editBtnLocator.click()
-
-            const editBtnHREF = await editBtnLocator.evaluate(el => el.getAttribute('href'))
-            await page.waitForURL(`${host + editBtnHREF}`)
-            expect(page.url()).toBe(`${host + editBtnHREF}`)
-            await expect(page.locator('#edit > div.form')).toBeVisible()
-
-            //find name and edit it to new value
-            const eventNameInputFieldLocator: Locator = await page.getByRole('textbox', { name: 'Event', exact: true })
-            eventName += '_$edited'
-            await eventNameInputFieldLocator.fill(eventName)
-
-            const addEventSubmitBtnLocator: Locator = await page.getByRole('button', { name: 'Edit' })
-            await addEventSubmitBtnLocator.click()
-
-            await page.waitForURL(createdEventHREF)
-            expect(page.url()).toBe(createdEventHREF)
-            await expect(page.locator('#details-wrapper')).toBeVisible()
-
-            await expect(page.locator('#details-wrapper > #details-title', { hasText: eventName })).toBeVisible()
-            await expect(page.locator('#details-wrapper > #details-title', { hasText: eventName })).toContainText(eventName)
+            await deleteEvent(page, `${eventName+"_$edited"}`)
         })
 
-        test('Delete an Event', async () => {
+        test('Delete an Event', async ({ page }) => {
+            let eventName: string = generateEventName()
+            let randomId: string = generateRandomId()
+
+            let user = await registerUser(page, createUser())
+            await logoutUser(page)
+
             await loginUser(page, user.email, user.password)
 
-            const eventsBtnLocator: Locator = await page.getByRole('link', { name: 'Events', exact: true })
-            await eventsBtnLocator.click()
+            await createEvent(page, eventName, randomId)
 
-            await page.waitForURL(host + '/dashboard')
-            expect(page.url()).toBe(host + '/dashboard')
-            await expect(page.locator('#dashboard')).toBeVisible()
-
-            //replace turns [href="http://localhost:3000/details/unique-ID"] into [href="/details/unique-ID"]
-            const createdEventBtnLocator: Locator = await page.locator(`div.event > a[href="${createdEventHREF.replace('http://localhost:3000', '')}"]`)
-            await createdEventBtnLocator.click()
-
-            await page.waitForURL(createdEventHREF)
-            expect(page.url()).toBe(createdEventHREF)
-            await expect(page.locator('#details-wrapper')).toBeVisible()
-
-            page.on('dialog', dialog => dialog.accept());
-            const deleteBtnLocator: Locator = await page.getByRole('link', { name: 'Delete' })
-            await deleteBtnLocator.click()
-
-            await page.waitForURL(host + '/dashboard')
-            expect(page.url()).toBe(host + '/dashboard')
-            await expect(page.locator('#dashboard')).toBeVisible()
-
-            await expect(page.locator('div.event > p.title', { hasText: eventName })).toHaveCount(0)
+            await deleteEvent(page, eventName)
         })
     });
 });
