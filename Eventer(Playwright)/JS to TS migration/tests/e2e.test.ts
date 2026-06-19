@@ -85,6 +85,7 @@ async function editEvent(page: Page, eventName: string, randomId: string) {
     await expect(editPreviewPage.eventPreviewElement).toBeVisible()
 
     await editPreviewPage.editPreviewButton.click()
+    await expect(page).toHaveURL((host + href).replace('details', 'edit'))
 
     await editEventPage.editEventFormFill(eventName, randomId)
 
