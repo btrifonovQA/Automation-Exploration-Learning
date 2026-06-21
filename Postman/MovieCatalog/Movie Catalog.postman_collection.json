@@ -1,0 +1,353 @@
+{
+  "info": {
+    "_postman_id": "92c8e8fa-07ac-4835-9289-5840d8f6cb22",
+    "name": "Movie Catalog",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "40147439"
+  },
+  "item": [
+    {
+      "name": "Login and Authentication",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const responseData = pm.response.json()\r",
+              "\r",
+              "pm.test(\"Status code is 200\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "});\r",
+              "\r",
+              "pm.test(\"Response body includes the attributes email, password, and accessToken\", function () {\r",
+              "    pm.expect(responseData).to.have.property('email');\r",
+              "    pm.expect(responseData).to.have.property('password');\r",
+              "    pm.expect(responseData).to.have.property('accessToken');\r",
+              "});\r",
+              "\r",
+              "pm.collectionVariables.set('token', responseData.accessToken);"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        },
+        {
+          "listen": "prerequest",
+          "script": {
+            "packages": {},
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"email\": \"tester@domain.org\",\r\n    \"password\": \"swordfish123\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseURL}}/api/User/Authentication",
+          "host": [
+            "{{baseURL}}"
+          ],
+          "path": [
+            "api",
+            "User",
+            "Authentication"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create a New Movie",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const word = Math.random().toString(36).substring(2, 8);\r",
+              "const rndMovieTitle = `rndMovie${word}_` + Math.floor(Math.random() * 1000);\r",
+              "const movieDescription = `Description for ${rndMovieTitle}.`;\r",
+              "\r",
+              "pm.collectionVariables.set('randomTitle', rndMovieTitle);\r",
+              "pm.collectionVariables.set('movieDescription', movieDescription);"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const responseData = pm.response.json();\r",
+              "const movieTitle = pm.collectionVariables.get('randomTitle');\r",
+              "const movieDescription = pm.collectionVariables.get('movieDescription');\r",
+              "\r",
+              "pm.test(\"Status code is 200\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "});\r",
+              "\r",
+              "pm.test('Assert the \"Movie created successfully!\" message in the response body', function () {\r",
+              "    pm.expect(responseData.msg).to.equal('Movie created successfully!');\r",
+              "});\r",
+              "\r",
+              "pm.test(`Assert that the title is ${movieTitle}, and description is ${movieDescription}`, function () {\r",
+              "    pm.expect(responseData.movie.title).to.equal(movieTitle);\r",
+              "    pm.expect(responseData.movie.description).to.equal(movieDescription);\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"title\": \"{{randomTitle}}\",\r\n  \"description\": \"{{movieDescription}}\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseURL}}/api/Movie/Create",
+          "host": [
+            "{{baseURL}}"
+          ],
+          "path": [
+            "api",
+            "Movie",
+            "Create"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "List all Movies",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const responseData = pm.response.json();\r",
+              "\r",
+              "pm.test(\"Status code is 200\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "});\r",
+              "\r",
+              "pm.test(\"Assert that the response is an array and that it contains at least one item\", function(){\r",
+              "    pm.expect(responseData).to.be.an('array').that.is.not.empty;\r",
+              "});\r",
+              "\r",
+              "pm.collectionVariables.set('lastMovieId', responseData[responseData.length - 1].id)"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseURL}}/api/Catalog/All",
+          "host": [
+            "{{baseURL}}"
+          ],
+          "path": [
+            "api",
+            "Catalog",
+            "All"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Edit the Last Movie",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const responseData = pm.response.json();\r",
+              "const movieTitle = pm.collectionVariables.get('randomTitle');\r",
+              "const movieDescription = pm.collectionVariables.get('movieDescription')\r",
+              "\r",
+              "pm.test(\"Status code is 200\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "});\r",
+              "\r",
+              "pm.test('Assert the \"Movie edited successfully!\" message.', function () {\r",
+              "    pm.expect(responseData.msg).to.equal('Movie edited successfully!')\r",
+              "});\r",
+              "\r",
+              "pm.test('Assert that the title in the response matches the new title provided', function () {\r",
+              "    pm.expect(responseData.movie.title).to.equal(`Edited_${movieTitle}`);\r",
+              "    pm.expect(responseData.movie.description).to.equal(`Edited_${movieDescription}`);\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"title\": \"Edited_{{randomTitle}}\",\r\n  \"description\": \"Edited_{{movieDescription}}\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseURL}}/api/Movie/Edit?movieId={{lastMovieId}}",
+          "host": [
+            "{{baseURL}}"
+          ],
+          "path": [
+            "api",
+            "Movie",
+            "Edit"
+          ],
+          "query": [
+            {
+              "key": "movieId",
+              "value": "{{lastMovieId}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Delete the Edited Movie",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const responseData = pm.response.json();\r",
+              "\r",
+              "pm.test(\"Status code is 200\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "});\r",
+              "\r",
+              "pm.test(\"Assert that the type of the response body contains 'msg' and the string response does NOT equal 'Unable to delete the movie! Check the movieId parameter or user verification!'\", function () {\r",
+              "    pm.expect(responseData).to.have.property(\"msg\");\r",
+              "    pm.expect(responseData.msg).to.not.equal('Unable to delete the movie! Check the movieId parameter or user verification!')\r",
+              "});\r",
+              "\r",
+              "pm.test('Assert that string equals \"Movie deleted successfully!\"', function () {\r",
+              "    pm.expect(responseData.msg).to.equal('Movie deleted successfully!');\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseURL}}/api/Movie/Delete?movieId={{lastMovieId}}",
+          "host": [
+            "{{baseURL}}"
+          ],
+          "path": [
+            "api",
+            "Movie",
+            "Delete"
+          ],
+          "query": [
+            {
+              "key": "movieId",
+              "value": "{{lastMovieId}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseURL",
+      "value": "http://144.91.123.158:5000"
+    },
+    {
+      "key": "token",
+      "value": "\"BEARER TOKEN GOES HERE\""
+    },
+    {
+      "key": "randomTitle",
+      "value": ""
+    },
+    {
+      "key": "movieDescription",
+      "value": ""
+    },
+    {
+      "key": "lastMovieId",
+      "value": ""
+    }
+  ]
+}
