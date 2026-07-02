@@ -4,11 +4,12 @@ on:
   push:
     branches: [ main, master ]
     paths:
-      - 'Playwright/JS to TS migration'  # Only trigger if files in Playwright/JS to TS migration change
+      - 'Playwright/JS to TS migration/**'  # Only trigger if files in Playwright/JS to TS migration change
   pull_request:
     branches: [ main, master ]
     paths:
-      - 'Playwright/JS to TS migration'  # Only trigger if files in Playwright/JS to TS migration change
+      - 'Playwright/JS to TS migration/**'  # Only trigger if files in Playwright/JS to TS migration change
+  workflow_dispatch:
 
 jobs:
   test:
@@ -21,16 +22,16 @@ jobs:
         node-version: lts/*
     - name: Install dependencies
       run: npm ci
-      working-directory: ./Playwright/JS\ to\ TS\ migration/
+      working-directory: './Playwright/JS to TS migration/'
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps
-      working-directory: ./Playwright/JS\ to\ TS\ migration/
+      working-directory: './Playwright/JS to TS migration/'
     - name: Run Playwright tests
       run: npm test
-      working-directory: ./Playwright/JS\ to\ TS\ migration/
+      working-directory: './Playwright/JS to TS migration/'
     - uses: actions/upload-artifact@v5
       if: ${{ !cancelled() }}
       with:
         name: playwright-report
-        path: ./Playwright/JS\ to\ TS\ migration/playwright-report/
+        path: './Playwright/JS to TS migration/playwright-report/'
         retention-days: 1
