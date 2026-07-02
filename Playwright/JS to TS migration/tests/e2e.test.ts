@@ -239,6 +239,3 @@ test.describe("e2e tests", () => {
         })
     });
 });
-
-
-// to test CI/CD
