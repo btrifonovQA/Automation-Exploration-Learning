@@ -1,15 +1,36 @@
-# To run
+# Getting Started
 
-// get dependencies
-npm i
+## Install Dependencies
 
-// start up site (only for JS version, TS will auto start server)
+```bash
+npm install
+```
+
+## Run the Application
+
+### JavaScript Version
+
+Start the frontend:
+
+```bash
 npm start
+```
 
+Start the server:
+
+```bash
 npm run server
+```
 
-//
-npm test -> run tests
+> **Note:** The TypeScript version automatically starts the server, so you only need to run `npm start`.
 
-//note for site
-if events are not deleted after creation (say after 2-3 events are created) they break UI, due to this they are deleted after each creation
+## Run Tests
+
+```bash
+npm test
+```
+
+## Notes
+
+- Due to a UI issue, events are deleted after each creation during development/testing.
+- If multiple events (typically 2–3 or more) are created without being deleted, the UI can break.
