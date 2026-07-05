@@ -22,7 +22,7 @@ Start the server:
 npm run server
 ```
 
-> **Note:** The TypeScript version automatically starts the server, so you only need to run `npm start`.
+> **Note:** The TypeScript version automatically starts the server/frontend, so you only need to run `npm test`.
 
 ## Run Tests
 
